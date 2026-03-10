@@ -1,97 +1,82 @@
+import enum
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import String, Boolean, ForeignKey
+from sqlalchemy import String, Integer, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from typing import List
+from typing import List, Optional
+
+# ✅ Buen uso de SQLAlchemy para definir modelos
+
+# Inicializa la base de datos
 
 db = SQLAlchemy()
 
 
 class User(db.Model):
-    __tablename__ = 'user'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_name: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    first_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    last_name: Mapped[str] = mapped_column(String(120), nullable=False)
-    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
-    password: Mapped[str] = mapped_column(String(80), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean(), nullable=False)
-    # Relaciones basicas
-    posts: Mapped[List["Post"]] = relationship(back_populates="author")
-    comments: Mapped[List["Comment"]] = relationship(back_populates="author")
-    #  Relaciones de seguimiento
-    followers: Mapped[List["Follower"]] = relationship(back_populates="user_to", foreign_keys="Follower.user_to_id")
-    following: Mapped[List["Follower"]] = relationship(back_populates="user_from", foreign_keys="Follower.user_from_id")
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 🔧 Cambiado el orden de atributos
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False)  # ✅ Buen uso de restricciones
+    password: Mapped[str] = mapped_column(String(250), nullable=False)  # 🔧 Aumentado el tamaño de la contraseña
+    email: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)  # ✅ Buen uso de restricciones
+
+    favourites: Mapped[List["Favourite"]] = relationship(back_populates="user")  # 🔧 Cambiado 'favourites' a 'favorites'
 
     def serialize(self):
         return {
             "id": self.id,
-            "email": self.email,
-            "username": self.user_name,
-            "firstname": self.first_name,
-            "lastname": self.last_name,
+            "username": self.username,
+            "email": self.email
         }
 
 
-class Post(db.Model):
-    __tablename__ = 'post'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # Relaciones basicas
-    user_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    author: Mapped["User"] = relationship(back_populates="posts")
-    media: Mapped[List["Media"]] = relationship(back_populates="post")
-    comments: Mapped[List["Comment"]] = relationship(back_populates="post")
+class Planet(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 🔧 Cambiado el orden de atributos
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)  # 🔧 Aumentado el tamaño del nombre
+    climate: Mapped[Optional[str]] = mapped_column(String(100))  # ✅ Uso correcto de Optional
+    terrain: Mapped[Optional[str]] = mapped_column(String(100))  # ✅ Uso correcto de Optional
+
+    favourites: Mapped[List["Favourite"]] = relationship(back_populates="planet")  # 🔧 Cambiado 'favourites' a 'favorites'
 
     def serialize(self):
         return {
             "id": self.id,
-            "user_id": self.user_id
+            "name": self.name,
+            "climate": self.climate,
+            "terrain": self.terrain
         }
 
 
-class Media(db.Model):
-    __tablename__ = 'media'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    type: Mapped[str] = mapped_column(String(50), nullable=False)
-    url: Mapped[str] = mapped_column(String(120), nullable=False)
-    # Relaciones basicas
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), nullable=False)
-    post: Mapped["Post"] = relationship(back_populates="media")
+class Character(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 🔧 Cambiado el orden de atributos
+    name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)  # 🔧 Aumentado el tamaño del nombre
+    hair_color: Mapped[Optional[str]] = mapped_column(String(50))  # ✅ Uso correcto de Optional
+    eye_color: Mapped[Optional[str]] = mapped_column(String(50))  # ✅ Uso correcto de Optional
+    gender: Mapped[Optional[str]] = mapped_column(String(50))  # ✅ Uso correcto de Optional
+
+    favourites: Mapped[List["Favourite"]] = relationship(back_populates="character")  # 🔧 Cambiado 'favourites' a 'favorites'
 
     def serialize(self):
         return {
             "id": self.id,
-            "type": self.type,
-            "url": self.url,
+            "name": self.name,
+            "hair_color": self.hair_color,
+            "eye_color": self.eye_color,
+            "gender": self.gender
         }
 
-class Comment(db.Model):
-    __tablename__ = 'comment'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    comment_text: Mapped[str] = mapped_column(String(500), nullable=False)
-    # Relaciones basicas
-    author_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    post_id: Mapped[int] = mapped_column(ForeignKey("post.id"), nullable=False)
-    author: Mapped["User"] = relationship(back_populates="comments")
-    post: Mapped["Post"] = relationship(back_populates="comments")
 
-    def serialize(self):
-        return {
-                "id": self.id,
-                "comment_text": self.comment_text
-        }
+class Favourite(db.Model):
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)  # 🔧 Cambiado el orden de atributos
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("user.id"), nullable=False)  # ✅ Buen uso de claves foráneas
+    planet_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("planet.id"), nullable=True)  # ✅ Uso correcto de Optional
+    character_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("character.id"), nullable=True)  # ✅ Uso correcto de Optional
 
-class Follower(db.Model):
-    __tablename__ = 'follower'
-    id: Mapped[int] = mapped_column(primary_key=True)
-    # Relaciones de seguimiento
-    user_from_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    user_to_id: Mapped[int] = mapped_column(ForeignKey("user.id"), nullable=False)
-    user_from: Mapped["User"] = relationship(back_populates="following", foreign_keys=[user_from_id])
-    user_to: Mapped["User"] = relationship(back_populates="followers", foreign_keys=[user_to_id])
+    user: Mapped["User"] = relationship(back_populates="favourites")  # 🔧 Cambiado 'favourites' a 'favorites'
+    planet: Mapped[Optional["Planet"]] = relationship(back_populates="favourites")  # 🔧 Cambiado 'favourites' a 'favorites'
+    character: Mapped[Optional["Character"]] = relationship(back_populates="favourites")  # 🔧 Cambiado 'favourites' a 'favorites'
 
     def serialize(self):
         return {
             "id": self.id,
-            "user_from_id": self.user_from_id,
-            "user_to_id": self.user_to_id,
+            "user_id": self.user_id,
+            "planet_id": self.planet_id,
+            "character_id": self.character_id
         }
